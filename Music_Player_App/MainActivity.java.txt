@@ -1,0 +1,115 @@
+package com.example.musicplayer;
+
+import android.media.MediaPlayer;
+import android.os.Bundle;
+import android.os.Handler;
+import android.view.View;
+import android.widget.*;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    TextView tvSongName, tvCurrent, tvTotal;
+    SeekBar seekBar;
+    Button btnPlay, btnNext, btnPrev;
+
+    MediaPlayer mediaPlayer;
+    int[] songs = {R.raw.song1, R.raw.song2, R.raw.song3};
+    String[] songNames = {"Ennai Konjam", "Vizhiyil", "Anbe Anbe"};
+    int currentIndex = 0;
+
+    Handler handler = new Handler();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        tvSongName = findViewById(R.id.tvSongName);
+        tvCurrent = findViewById(R.id.tvCurrent);
+        tvTotal = findViewById(R.id.tvTotal);
+        seekBar = findViewById(R.id.seekBar);
+        btnPlay = findViewById(R.id.btnPlay);
+        btnNext = findViewById(R.id.btnNext);
+        btnPrev = findViewById(R.id.btnPrev);
+
+        loadSong();
+
+        btnPlay.setOnClickListener(v -> {
+            if (mediaPlayer.isPlaying()) {
+                mediaPlayer.pause();
+                btnPlay.setText("▶");
+            } else {
+                mediaPlayer.start();
+                btnPlay.setText("⏸");
+            }
+        });
+
+        btnNext.setOnClickListener(v -> {
+            currentIndex = (currentIndex + 1) % songs.length;
+            loadSong();
+        });
+
+        btnPrev.setOnClickListener(v -> {
+            currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+            loadSong();
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mediaPlayer.seekTo(progress);
+                }
+            }
+
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void loadSong() {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
+
+        mediaPlayer = MediaPlayer.create(this, songs[currentIndex]);
+        tvSongName.setText(songNames[currentIndex]);
+
+        seekBar.setMax(mediaPlayer.getDuration());
+        tvTotal.setText(formatTime(mediaPlayer.getDuration()));
+
+        mediaPlayer.start();
+        btnPlay.setText("⏸");
+
+        updateSeekBar();
+    }
+
+    private void updateSeekBar() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mediaPlayer != null) {
+                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                    tvCurrent.setText(formatTime(mediaPlayer.getCurrentPosition()));
+                    handler.postDelayed(this, 500);
+                }
+            }
+        }, 0);
+    }
+
+    private String formatTime(int ms) {
+        int minutes = (ms / 1000) / 60;
+        int seconds = (ms / 1000) % 60;
+        return minutes + ":" + String.format("%02d", seconds);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
+        super.onDestroy();
+    }
+}
